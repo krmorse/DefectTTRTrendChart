@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Defect TTR Trend Chart</title>
+
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define('TTRCalculator', {
+
+    config: {
+        bucketBy: '',
+        priorities: []
+    },
+
+    constructor: function(config) {
+        this.initConfig(config);
+    },
+
+    prepareChartData: function(store) {
+        var data = this._groupData(store),
+        categories = _.keys(data),
+        priorities = this.priorities;
+
+        var series = {};
+        _.each(categories, function(category) {
+            var group = data[category];
+            var recordsByPriority = _.groupBy(group, function(record) {
+                return record.get('Priority') || 'None';
+            }, this);
+            _.each(priorities, function(priority) {
+                series[priority] = series[priority] || [];
+                var records = recordsByPriority[priority] || [];
+                var totalTTR = 0;
+                _.each(records, function(record) {
+                    totalTTR += moment(record.get('ClosedDate')).diff(moment(record.get('CreationDate')), 'days');
+                });
+                series[priority].push(totalTTR / Math.max(records.length, 1));
+            }, this);
+        }, this);
+
+        return {
+            categories: categories,
+            series: _.map(priorities, function(value) {
+                return {
+                    name: value,
+                    type: 'line',
+                    data: series[value]
+                };
+            }, this)
+        };
+    },
+
+    _groupData: function(store) {
+        return _.groupBy(store.getRange(), function(record) {
+            if (this.bucketBy === 'week') {
+                return moment(record.get('ClosedDate')).startOf('isoWeek').format('MMM D');
+            }
+        }, this);
+    }
+});
+
+                Ext.define('DefectTTRTrendChartApp', {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+
+    layout: 'fit',
+
+    requires: [
+        'TTRCalculator'
+    ],
+
+    config: {
+        defaultSettings: {
+            bucketBy: 'week',
+            query: ''
+        }
+    },
+
+    launch: function() {
+        Rally.data.wsapi.ModelFactory.getModel({
+            type: 'defect'
+        }).then({
+            success: function(model) {
+                this.model = model;
+                this._loadPriorities();
+            },
+            scope: this
+        });
+    },
+
+    _loadPriorities: function() {
+        this.model.getField('Priority').getAllowedValueStore().load().then({
+            success: function(records) {
+                this.priorities = _.map(records, function(record) {
+                    return record.get('StringValue') || 'None';
+                });
+                this._addChart();
+            },
+            scope: this
+        });
+    },
+
+    _addChart: function() {
+        var context = this.getContext(),
+            modelNames = [this.model.typePath],
+            gridBoardConfig = {
+                xtype: 'rallygridboard',
+                toggleState: 'chart',
+                chartConfig: this._getChartConfig(),
+                plugins: [{
+                    ptype:'rallygridboardinlinefiltercontrol',
+                    showInChartMode: true,
+                    inlineFilterButtonConfig: {
+                        stateful: true,
+                        stateId: context.getScopedStateId('filters'),
+                        filterChildren: false,
+                        modelNames: modelNames,
+                        inlineFilterPanelConfig: {
+                            quickFilterPanelConfig: {
+                                defaultFields: ['Owner', 'PlanEstimate', 'Severity']
+                            }
+                        }
+                    }
+                }],
+                context: context,
+                modelNames: modelNames,
+                storeConfig: {
+                    filters: this._getFilters()
+                }
+            };
+
+        this.add(gridBoardConfig);
+    },
+
+    _getChartConfig: function() {
+        return {
+            xtype: 'rallychart',
+            storeType: 'Rally.data.wsapi.Store',
+            storeConfig: {
+                context: this.getContext().getDataContext(),
+                limit: Infinity,
+                fetch: this._getChartFetch(),
+                sorters: this._getChartSort(),
+                pageSize: 2000,
+                model: this.model
+            },
+            calculatorType: 'TTRCalculator',
+            calculatorConfig: {
+                bucketBy: this.getSetting('bucketBy'),
+                priorities: this.priorities
+            },
+            chartConfig: {
+                chart: { type: 'line' },
+                title: {
+                    text: ''
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: 'Time to Resolution (Days)'
+                    }
+                },
+                legend: {
+                    layout: 'vertical',
+                    align: 'right',
+                    verticalAlign: 'middle'
+                },
+                plotOptions: {
+                    line: {}
+                }
+            }
+        };
+    },
+
+    onTimeboxScopeChange: function() {
+        this.callParent(arguments);
+
+        var gridBoard = this.down('rallygridboard');
+        if (gridBoard) {
+            gridBoard.destroy();
+        }
+        this._addChart();
+    },
+
+    _getChartFetch: function() {
+        return ['Priority', 'Iteration', 'StartDate', 'Name', 'ClosedDate', 'CreationDate', 'OpenedDate'];
+    },
+
+    _getChartSort: function() {
+        if (this.getSetting('bucketBy') === 'week') {
+            return [{ property: 'ClosedDate', direction: 'ASC' }];
+        }
+        return [];
+    },
+
+    _getFilters: function() {
+        var queries = [{ property: 'State', operator: '=', value: 'Closed' }],
+            timeboxScope = this.getContext().getTimeboxScope();
+        if (timeboxScope) {
+            queries.push(timeboxScope.getQueryFilter());
+        }
+        if (this.getSetting('query')) {
+            queries.push(Rally.data.QueryFilter.fromQueryString(this.getSetting('query')));
+        }
+        return queries;
+    }
+});
+
+
+            Rally.launchApp('DefectTTRTrendChartApp', {
+                name:"Defect TTR Trend Chart",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+
+    <style type="text/css">
+        .app {
+  /* Add app styles here */
+}
+
+    </style>
+</head>
+<body>
+</body>
+</html>

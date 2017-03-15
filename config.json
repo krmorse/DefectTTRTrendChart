@@ -1,0 +1,13 @@
+{
+    "name": "Defect TTR Trend Chart",
+    "className": "DefectTTRTrendChartApp",
+    "server": "https://rally1.rallydev.com",
+    "sdk": "2.1",
+    "javascript": [
+        "TTRCalculator.js",
+        "DefectTTRTrendChartApp.js"
+    ],
+    "css": [
+        "app.css"
+    ]
+}
