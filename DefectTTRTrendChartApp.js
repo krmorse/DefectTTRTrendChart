@@ -69,6 +69,7 @@ Ext.define('DefectTTRTrendChartApp', {
 
     _addChart: function() {
         var context = this.getContext(),
+            whiteListFields = ['Milestones', 'Tags'],
             modelNames = [this.model.typePath],
             gridBoardConfig = {
                 xtype: 'rallygridboard',
@@ -96,8 +97,18 @@ Ext.define('DefectTTRTrendChartApp', {
                         modelNames: modelNames,
                         inlineFilterPanelConfig: {
                             quickFilterPanelConfig: {
-                                defaultFields: ['Owner', 'PlanEstimate', 'Severity']
-                            }
+                                defaultFields: ['Owner', 'PlanEstimate', 'Severity'],
+                                addQuickFilterConfig: {
+                                   whiteListFields: whiteListFields
+                                }
+                            },
+                            advancedFilterPanelConfig: {
+                               advancedFilterRowsConfig: {
+                                   propertyFieldConfig: {
+                                       whiteListFields: whiteListFields
+                                   }
+                               }
+                           }
                         }
                     }
                 }],
