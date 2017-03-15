@@ -25,7 +25,7 @@ Ext.define('TTRCalculator', {
                 var records = recordsByPriority[priority] || [];
                 var totalTTR = 0;
                 _.each(records, function(record) {
-                    totalTTR += moment(record.get('ClosedDate')).diff(moment(record.get('CreationDate')), 'days');
+                    totalTTR += moment(record.get('ClosedDate')).diff(moment(record.get('OpenedDate')), 'days');
                 });
                 series[priority].push(totalTTR / Math.max(records.length, 1));
             }, this);
@@ -46,7 +46,9 @@ Ext.define('TTRCalculator', {
     _groupData: function(store) {
         return _.groupBy(store.getRange(), function(record) {
             if (this.bucketBy === 'week') {
-                return moment(record.get('ClosedDate')).startOf('isoWeek').format('MMM D');
+                return moment(record.get('ClosedDate')).startOf('week').format('MMM D');
+            } else if (this.bucketBy === 'month') {
+                return moment(record.get('ClosedDate')).startOf('month').format('MMM \'YY');
             }
         }, this);
     }
