@@ -73,18 +73,6 @@ Ext.define('DefectTTRTrendChartApp', {
             modelNames = [this.model.typePath],
             gridBoardConfig = {
                 xtype: 'rallygridboard',
-                chartColors: [
-                    "#FF8200", // $orange
-                    "#F6A900", // $gold
-                    "#FAD200", // $yellow
-                    "#8DC63F", // $lime
-                    "#1E7C00", // $green_dk
-                    "#337EC6", // $blue_link
-                    "#005EB8", // $blue
-                    "#7832A5", // $purple,
-                    "#DA1884",  // $pink,
-                    "#C0C0C0" // $grey4
-                ],
                 toggleState: 'chart',
                 chartConfig: this._getChartConfig(),
                 plugins: [{
@@ -139,6 +127,13 @@ Ext.define('DefectTTRTrendChartApp', {
                 bucketBy: this.getSetting('bucketBy'),
                 priorities: this.priorities
             },
+            chartColors: [
+                "#FF8200", // $orange
+                "#1E7C00", // $green_dk
+                "#005EB8", // $blue
+                "#7832A5", // $purple
+                "#B81B10" // $red
+            ],
             chartConfig: {
                 chart: { type: 'line' },
                 title: {
@@ -181,10 +176,7 @@ Ext.define('DefectTTRTrendChartApp', {
     },
 
     _getChartSort: function() {
-        if (this.getSetting('bucketBy') === 'week') {
-            return [{ property: 'ClosedDate', direction: 'ASC' }];
-        }
-        return [];
+        return [{ property: 'ClosedDate', direction: 'ASC' }];
     },
 
     _getFilters: function() {
